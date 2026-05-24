@@ -1,18 +1,26 @@
 'use strict';
 
+const TEXT = {
+  idle: '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002',
+  running: '\u0041\u0067\u0065\u006e\u0074 \u6b63\u5728\u5de5\u4f5c\u3002',
+  waiting: '\u0041\u0067\u0065\u006e\u0074 \u597d\u50cf\u5728\u7b49\u4f60\u4e0b\u4e00\u6b65\u3002',
+  stuck: '\u8fd9\u4e00\u6b65\u53ef\u80fd\u5361\u4f4f\u4e86\uff0c\u8981\u4e0d\u8981\u770b\u4e00\u4e0b\u6700\u8fd1\u8f93\u51fa\uff1f',
+  wrap: '\u770b\u8d77\u6765\u53ef\u4ee5\u6536\u5c3e\u4e86\uff1a\u603b\u7ed3\u3001\u63d0\u4ea4\uff0c\u6216\u8005\u8bb0\u5f55\u7ed3\u679c\u3002'
+};
+
 const MESSAGE_BY_KEY = {
-  agent_running: 'Agent 正在工作。',
-  agent_waiting_for_user: 'Agent 好像在等你下一步。',
-  task_may_be_stuck: '这一步可能卡住了，要不要看一下最近输出？',
-  task_ready_to_wrap_up: '看起来可以收尾了：总结、提交，或者记录结果。'
+  agent_running: TEXT.running,
+  agent_waiting_for_user: TEXT.waiting,
+  task_may_be_stuck: TEXT.stuck,
+  task_ready_to_wrap_up: TEXT.wrap
 };
 
 const MESSAGE_BY_STATUS = {
-  running: MESSAGE_BY_KEY.agent_running,
-  waiting_for_user: MESSAGE_BY_KEY.agent_waiting_for_user,
-  stuck: MESSAGE_BY_KEY.task_may_be_stuck,
-  ready_to_wrap_up: MESSAGE_BY_KEY.task_ready_to_wrap_up,
-  idle: 'Boba 正在待命。'
+  running: TEXT.running,
+  waiting_for_user: TEXT.waiting,
+  stuck: TEXT.stuck,
+  ready_to_wrap_up: TEXT.wrap,
+  idle: TEXT.idle
 };
 
 const MOOD_BY_STATUS = {
@@ -48,6 +56,7 @@ function getMoodForState(state) {
 }
 
 module.exports = {
+  TEXT,
   MESSAGE_BY_KEY,
   MESSAGE_BY_STATUS,
   getChineseMessage,

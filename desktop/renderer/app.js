@@ -13,11 +13,19 @@ let lastWalkAt = 0;
 let canAutoWalk = false;
 
 const IDLE_TEXT = '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002';
+const IDLE_CHATTER = [
+  '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002',
+  '\u6211\u5728\u8fd9\u91cc\u966a\u4f60\u3002',
+  '\u8981\u5f00\u59cb\u4e00\u4e2a\u65b0\u4efb\u52a1\u5417\uff1f',
+  '\u8bb0\u5f97\u5076\u5c14\u4f11\u606f\u4e00\u4e0b\u3002'
+];
 const WALK_SPEED_PX_PER_SECOND = 24;
 const WALK_RESUME_DELAY_MS = 2000;
+let idleChatterIndex = 0;
 
 function setState(state, force = false) {
-  const nextMessage = state && state.message ? state.message : IDLE_TEXT;
+  const isIdle = !state || state.status === 'idle';
+  const nextMessage = isIdle ? getIdleMessage(force) : (state.message || IDLE_TEXT);
   const mood = state && state.mood ? state.mood : 'idle';
 
   pet.className = `pet mood-${mood} ${walkDirection < 0 ? 'facing-left' : 'facing-right'}`;
@@ -28,6 +36,13 @@ function setState(state, force = false) {
   }
 
   lastMessage = nextMessage;
+}
+
+function getIdleMessage(force) {
+  if (force) {
+    idleChatterIndex = (idleChatterIndex + 1) % IDLE_CHATTER.length;
+  }
+  return IDLE_CHATTER[idleChatterIndex];
 }
 
 function showBubble() {
@@ -144,6 +159,7 @@ window.addEventListener('beforeunload', () => {
 
 refreshState(true);
 setInterval(() => refreshState(false), 2000);
+setInterval(() => refreshState(true), 30000);
 setTimeout(() => {
   canAutoWalk = true;
   requestAnimationFrame(walkFrame);

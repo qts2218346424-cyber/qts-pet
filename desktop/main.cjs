@@ -13,6 +13,7 @@ const {
 let mainWindow = null;
 let config = loadDesktopConfig();
 const shouldResetPosition = process.argv.includes('--reset-position');
+let lastMenuAt = 0;
 
 const LABELS = {
   openCodex: '\u5728\u8fd9\u91cc\u6253\u5f00 Codex',
@@ -55,6 +56,9 @@ function createWindow() {
 
   mainWindow.setAlwaysOnTop(true, 'floating');
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.webContents.on('context-menu', () => {
+    showContextMenu();
+  });
   mainWindow.once('ready-to-show', () => {
     if (!mainWindow) return;
     mainWindow.setSize(300, 250, false);
@@ -118,6 +122,13 @@ function buildContextMenu() {
   ]);
 }
 
+function showContextMenu() {
+  const now = Date.now();
+  if (now - lastMenuAt < 250) return;
+  lastMenuAt = now;
+  buildContextMenu().popup({ window: mainWindow });
+}
+
 function launchAgent(agent) {
   const command = `boba ${agent}`;
   const child = spawn('powershell.exe', [
@@ -179,7 +190,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-state', () => loadDesktopState());
   ipcMain.handle('show-menu', () => {
-    buildContextMenu().popup({ window: mainWindow });
+    showContextMenu();
   });
   ipcMain.handle('save-position', () => {
     saveWindowPosition();
