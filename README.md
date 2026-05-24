@@ -12,6 +12,7 @@ Boba Agent Coach is a lightweight command wrapper for Claude Code and Codex. It 
 npm run boba -- codex
 npm run boba -- claude
 npm run boba -- state
+npm run desktop
 ```
 
 After packaging the CLI, the intended commands are:
@@ -20,7 +21,10 @@ After packaging the CLI, the intended commands are:
 boba codex
 boba claude
 boba state
+boba-desktop
 ```
+
+`boba-desktop` starts the floating desktop pet with Chinese status bubbles and a Chinese right-click menu.
 
 ## First-Version Reminders
 
