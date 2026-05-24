@@ -152,6 +152,14 @@ app.whenReady().then(() => {
     saveWindowPosition();
     return true;
   });
+  ipcMain.handle('get-window-position', () => {
+    return mainWindow ? mainWindow.getPosition() : [0, 0];
+  });
+  ipcMain.handle('set-window-position', (_event, position) => {
+    if (!mainWindow || !position) return false;
+    mainWindow.setPosition(Math.round(position.x), Math.round(position.y), false);
+    return true;
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -13,7 +13,12 @@ body {
   position: relative;
   width: 260px;
   height: 220px;
-  -webkit-app-region: drag;
+  cursor: grab;
+  -webkit-app-region: no-drag;
+}
+
+.pet.dragging {
+  cursor: grabbing;
 }
 
 .body {
@@ -87,7 +92,6 @@ body {
   color: #22342f;
   font-size: 13px;
   line-height: 1.45;
-  -webkit-app-region: no-drag;
 }
 
 .bubble p {
