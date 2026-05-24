@@ -9,16 +9,22 @@ const {
   loadDesktopConfig,
   saveDesktopConfig
 } = require('../src/desktopConfig.cjs');
+const { getCodexUsageSummary } = require('../src/codexUsage.cjs');
 
 let mainWindow = null;
 let config = loadDesktopConfig();
 const shouldResetPosition = process.argv.includes('--reset-position');
 let lastMenuAt = 0;
+const PET_WINDOW_WIDTH = 240;
+const PET_WINDOW_HEIGHT = 200;
 
 const LABELS = {
   openCodex: '\u5728\u8fd9\u91cc\u6253\u5f00 Codex',
   openClaude: '\u5728\u8fd9\u91cc\u6253\u5f00 Claude',
   showState: '\u67e5\u770b\u5f53\u524d\u72b6\u6001',
+  showCodexUsage: '\u67e5\u770b Codex \u4f59\u989d/\u7528\u91cf',
+  toggleWalking: '\u6682\u505c/\u7ee7\u7eed\u884c\u8d70',
+  resetPosition: '\u91cd\u7f6e\u4f4d\u7f6e',
   startOnLogin: '\u5f00\u673a\u81ea\u52a8\u542f\u52a8',
   enabled: '\u5df2\u5f00\u542f',
   disabled: '\u5df2\u5173\u95ed',
@@ -31,12 +37,12 @@ const LABELS = {
 function createWindow() {
   const position = shouldResetPosition ? getDefaultWindowPosition() : (config.windowPosition || getDefaultWindowPosition());
   mainWindow = new BrowserWindow({
-    width: 300,
-    height: 250,
-    minWidth: 300,
-    minHeight: 250,
-    maxWidth: 300,
-    maxHeight: 250,
+    width: PET_WINDOW_WIDTH,
+    height: PET_WINDOW_HEIGHT,
+    minWidth: PET_WINDOW_WIDTH,
+    minHeight: PET_WINDOW_HEIGHT,
+    maxWidth: PET_WINDOW_WIDTH,
+    maxHeight: PET_WINDOW_HEIGHT,
     x: position.x,
     y: position.y,
     frame: false,
@@ -61,7 +67,7 @@ function createWindow() {
   });
   mainWindow.once('ready-to-show', () => {
     if (!mainWindow) return;
-    mainWindow.setSize(300, 250, false);
+    mainWindow.setSize(PET_WINDOW_WIDTH, PET_WINDOW_HEIGHT, false);
     mainWindow.showInactive();
   });
 
@@ -74,8 +80,8 @@ function createWindow() {
 function getDefaultWindowPosition() {
   const workArea = screen.getPrimaryDisplay().workArea;
   return {
-    x: Math.round(workArea.x + (workArea.width - 300) / 2),
-    y: Math.round(workArea.y + workArea.height - 330)
+    x: Math.round(workArea.x + (workArea.width - PET_WINDOW_WIDTH) / 2),
+    y: Math.round(workArea.y + workArea.height - PET_WINDOW_HEIGHT - 80)
   };
 }
 
@@ -105,6 +111,18 @@ function buildContextMenu() {
     {
       label: LABELS.showState,
       click: () => sendStateToRenderer(true)
+    },
+    {
+      label: LABELS.showCodexUsage,
+      click: () => showCodexUsage()
+    },
+    {
+      label: LABELS.toggleWalking,
+      click: () => sendRendererCommand({ type: 'toggle-walking' })
+    },
+    {
+      label: LABELS.resetPosition,
+      click: () => resetWindowPosition()
     },
     {
       label: `${LABELS.startOnLogin}\uff1a${isLoginOpen ? LABELS.enabled : LABELS.disabled}`,
@@ -166,12 +184,30 @@ function toggleLaunchAtLogin(openAtLogin) {
   }
 }
 
+function resetWindowPosition() {
+  if (!mainWindow) return;
+  const position = getDefaultWindowPosition();
+  mainWindow.setPosition(position.x, position.y, false);
+  saveWindowPosition();
+  sendBubble('\u5df2\u7ecf\u56de\u5230\u5c4f\u5e55\u4e2d\u4e0b\u65b9\u3002', 'settled');
+}
+
+function showCodexUsage() {
+  const summary = getCodexUsageSummary();
+  sendBubble(summary.message, summary.available ? 'gentle_prompt' : 'concerned');
+}
+
 function sendStateToRenderer(force = false) {
   if (!mainWindow) return;
   mainWindow.webContents.send('desktop-state', {
     ...loadDesktopState(),
     force
   });
+}
+
+function sendRendererCommand(command) {
+  if (!mainWindow) return;
+  mainWindow.webContents.send('desktop-command', command);
 }
 
 function sendBubble(message, mood) {

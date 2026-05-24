@@ -11,6 +11,7 @@ let walkDirection = 1;
 let walkPausedUntil = 0;
 let lastWalkAt = 0;
 let canAutoWalk = false;
+let walkingEnabled = true;
 let cachedWorkArea = null;
 let currentWindowPosition = null;
 
@@ -21,8 +22,8 @@ const IDLE_CHATTER = [
   '\u8981\u5f00\u59cb\u4e00\u4e2a\u65b0\u4efb\u52a1\u5417\uff1f',
   '\u8bb0\u5f97\u5076\u5c14\u4f11\u606f\u4e00\u4e0b\u3002'
 ];
-const WALK_SPEED_PX_PER_SECOND = 24;
-const WALK_TICK_MS = 240;
+const WALK_SPEED_PX_PER_SECOND = 12;
+const WALK_TICK_MS = 500;
 const WALK_RESUME_DELAY_MS = 2000;
 let idleChatterIndex = 0;
 
@@ -31,7 +32,7 @@ function setState(state, force = false) {
   const nextMessage = isIdle ? getIdleMessage(force) : (state.message || IDLE_TEXT);
   const mood = state && state.mood ? state.mood : 'idle';
 
-  pet.className = `pet mood-${mood} ${walkDirection < 0 ? 'facing-left' : 'facing-right'}`;
+  applyPetClasses(mood);
   message.textContent = nextMessage;
 
   if (force || nextMessage !== lastMessage) {
@@ -39,6 +40,23 @@ function setState(state, force = false) {
   }
 
   lastMessage = nextMessage;
+}
+
+function applyPetClasses(mood = 'idle') {
+  const classes = [
+    'pet',
+    `mood-${mood}`,
+    walkDirection < 0 ? 'facing-left' : 'facing-right'
+  ];
+
+  if (!walkingEnabled || performance.now() < walkPausedUntil) {
+    classes.push('paused');
+  }
+  if (dragState) {
+    classes.push('dragging');
+  }
+
+  pet.className = classes.join(' ');
 }
 
 function getIdleMessage(force) {
@@ -79,7 +97,7 @@ async function walkTick() {
   const deltaSeconds = Math.min((now - lastWalkAt) / 1000, 0.35);
   lastWalkAt = now;
 
-  if (canAutoWalk && !dragState && now >= walkPausedUntil) {
+  if (walkingEnabled && canAutoWalk && !dragState && now >= walkPausedUntil) {
     pet.classList.remove('paused');
     if (!currentWindowPosition) {
       const [windowX, windowY] = await window.bobaDesktop.getWindowPosition();
@@ -91,9 +109,9 @@ async function walkTick() {
     const windowX = currentWindowPosition.x;
     const windowY = currentWindowPosition.y;
     const workArea = cachedWorkArea;
-    const petWidth = 300;
-    const minX = workArea.x + 60;
-    const maxX = workArea.x + workArea.width - petWidth - 160;
+    const petWidth = 240;
+    const minX = workArea.x + 40;
+    const maxX = workArea.x + workArea.width - petWidth - 80;
     let nextX = windowX + walkDirection * WALK_SPEED_PX_PER_SECOND * deltaSeconds;
 
     if (nextX <= minX) {
@@ -113,8 +131,32 @@ async function walkTick() {
   }
 }
 
+function toggleWalking() {
+  walkingEnabled = !walkingEnabled;
+  if (walkingEnabled) {
+    pauseWalking(600);
+    setState({
+      status: 'notice',
+      message: '\u5df2\u7ee7\u7eed\u884c\u8d70\uff0c\u6211\u4f1a\u6162\u4e00\u70b9\u3002',
+      mood: 'settled'
+    }, true);
+  } else {
+    pauseWalking(60 * 60 * 1000);
+    setState({
+      status: 'notice',
+      message: '\u5df2\u6682\u505c\u884c\u8d70\uff0c\u73b0\u5728\u4e0d\u4f1a\u4e71\u8dd1\u3002',
+      mood: 'gentle_prompt'
+    }, true);
+  }
+}
+
 window.bobaDesktop.onState((state) => {
   setState(state, Boolean(state && state.force));
+});
+
+window.bobaDesktop.onCommand((command) => {
+  if (!command || command.type !== 'toggle-walking') return;
+  toggleWalking();
 });
 
 pet.addEventListener('dblclick', () => {

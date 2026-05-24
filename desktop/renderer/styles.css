@@ -11,8 +11,8 @@ body {
 
 .pet {
   position: relative;
-  width: 300px;
-  height: 250px;
+  width: 240px;
+  height: 200px;
   cursor: grab;
   -webkit-app-region: no-drag;
 }
@@ -23,11 +23,12 @@ body {
 
 .dragon {
   position: absolute;
-  left: 70px;
-  bottom: 22px;
+  left: 40px;
+  bottom: 10px;
   width: 160px;
   height: 166px;
   transform-origin: 50% 86%;
+  transform: scale(0.82);
   animation: walk-bob 960ms ease-in-out infinite;
 }
 
@@ -36,7 +37,7 @@ body {
 }
 
 .pet.facing-left .dragon {
-  transform: scaleX(-1);
+  transform: scaleX(-1) scale(0.82);
 }
 
 .body {
@@ -81,6 +82,8 @@ body {
   border-radius: 999px;
   background: radial-gradient(circle at 60% 58%, #102313 0%, #102313 48%, #265b24 52%, #6cbd4e 76%, #ffffff 79%, #ffffff 100%);
   box-shadow: 0 0 0 2px rgba(45, 43, 24, 0.35);
+  transform-origin: center;
+  animation: blink 5.2s ease-in-out infinite;
 }
 
 .eye-left {
@@ -98,6 +101,7 @@ body {
   height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.9);
+  animation: blink-shine 5.2s ease-in-out infinite;
 }
 
 .shine-left {
@@ -215,9 +219,9 @@ body {
 
 .bubble {
   position: absolute;
-  right: 12px;
-  top: 16px;
-  max-width: 220px;
+  right: 8px;
+  top: 8px;
+  max-width: 178px;
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.96);
@@ -226,6 +230,7 @@ body {
   color: #332817;
   font-size: 13px;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .bubble p {
@@ -302,5 +307,23 @@ body {
   }
   50% {
     transform: rotate(-18deg);
+  }
+}
+
+@keyframes blink {
+  0%, 91%, 100% {
+    scale: 1 1;
+  }
+  94%, 96% {
+    scale: 1 0.12;
+  }
+}
+
+@keyframes blink-shine {
+  0%, 91%, 100% {
+    opacity: 1;
+  }
+  94%, 96% {
+    opacity: 0;
   }
 }

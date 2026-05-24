@@ -11,5 +11,8 @@ contextBridge.exposeInMainWorld('bobaDesktop', {
   getWorkArea: () => ipcRenderer.invoke('get-work-area'),
   onState: (callback) => {
     ipcRenderer.on('desktop-state', (_event, state) => callback(state));
+  },
+  onCommand: (callback) => {
+    ipcRenderer.on('desktop-command', (_event, command) => callback(command));
   }
 });
