@@ -8,6 +8,11 @@
   </head>
   <body>
     <main id="pet" class="pet mood-idle facing-right" title="Boba">
+      <output id="fps" class="fps-badge">FPS --</output>
+      <section id="info-panel" class="info-panel hidden" aria-live="polite">
+        <strong id="info-title"></strong>
+        <p id="info-message"></p>
+      </section>
       <section id="bubble" class="bubble hidden">
         <p id="message">Boba &#27491;&#22312;&#24453;&#21629;&#12290;</p>
       </section>
@@ -15,8 +20,8 @@
         <div class="tail"></div>
         <div class="body">
           <div class="belly"></div>
-          <div class="arm arm-left"></div>
-          <div class="arm arm-right"></div>
+          <div class="arm arm-left"><span class="claws hand-claws"></span></div>
+          <div class="arm arm-right"><span class="claws hand-claws"></span></div>
           <div class="foot foot-left"></div>
           <div class="foot foot-right"></div>
         </div>

@@ -23,6 +23,7 @@ const LABELS = {
   openClaude: '\u5728\u8fd9\u91cc\u6253\u5f00 Claude',
   showState: '\u67e5\u770b\u5f53\u524d\u72b6\u6001',
   showCodexUsage: '\u67e5\u770b Codex \u4f59\u989d/\u7528\u91cf',
+  showGpuStatus: '\u67e5\u770b\u663e\u5361\u72b6\u6001',
   toggleWalking: '\u6682\u505c/\u7ee7\u7eed\u884c\u8d70',
   resetPosition: '\u91cd\u7f6e\u4f4d\u7f6e',
   startOnLogin: '\u5f00\u673a\u81ea\u52a8\u542f\u52a8',
@@ -33,6 +34,15 @@ const LABELS = {
   launchFailed: '\u542f\u52a8\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5 boba \u547d\u4ee4\u662f\u5426\u53ef\u7528\u3002',
   loginFailed: '\u8bbe\u7f6e\u5f00\u673a\u542f\u52a8\u5931\u8d25\u3002'
 };
+
+configureHardwareAcceleration();
+
+function configureHardwareAcceleration() {
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');
+  app.commandLine.appendSwitch('enable-gpu-rasterization');
+  app.commandLine.appendSwitch('enable-zero-copy');
+  app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
+}
 
 function createWindow() {
   const position = shouldResetPosition ? getDefaultWindowPosition() : (config.windowPosition || getDefaultWindowPosition());
@@ -117,6 +127,10 @@ function buildContextMenu() {
       click: () => showCodexUsage()
     },
     {
+      label: LABELS.showGpuStatus,
+      click: () => showGpuStatus()
+    },
+    {
       label: LABELS.toggleWalking,
       click: () => sendRendererCommand({ type: 'toggle-walking' })
     },
@@ -194,7 +208,40 @@ function resetWindowPosition() {
 
 function showCodexUsage() {
   const summary = getCodexUsageSummary();
-  sendBubble(summary.message, summary.available ? 'gentle_prompt' : 'concerned');
+  sendRendererCommand({
+    type: 'show-info-panel',
+    title: '\u0043\u006f\u0064\u0065\u0078 \u7528\u91cf',
+    message: summary.message,
+    mood: summary.available ? 'gentle_prompt' : 'concerned'
+  });
+}
+
+function showGpuStatus() {
+  const status = app.getGPUFeatureStatus();
+  const lines = [
+    `\u5408\u6210\uff1a${formatGpuStatus(status.gpu_compositing)}`,
+    `\u6805\u683c\u5316\uff1a${formatGpuStatus(status.rasterization)}`,
+    `WebGL\uff1a${formatGpuStatus(status.webgl)}`,
+    `Canvas\uff1a${formatGpuStatus(status.canvas)}`
+  ];
+  sendRendererCommand({
+    type: 'show-info-panel',
+    title: '\u663e\u5361\u52a0\u901f',
+    message: lines.join('\n'),
+    mood: 'gentle_prompt'
+  });
+}
+
+function formatGpuStatus(value) {
+  if (!value) return '\u672a\u77e5';
+  const labels = {
+    enabled: '\u5df2\u542f\u7528',
+    disabled_software: '\u8f6f\u4ef6\u6a21\u5f0f',
+    disabled_off: '\u5df2\u5173\u95ed',
+    unavailable_software: '\u4ec5\u8f6f\u4ef6\u53ef\u7528',
+    unavailable_off: '\u4e0d\u53ef\u7528'
+  };
+  return labels[value] || value;
 }
 
 function sendStateToRenderer(force = false) {
