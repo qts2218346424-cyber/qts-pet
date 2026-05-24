@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, screen, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const os = require('node:os');
@@ -12,6 +12,19 @@ const {
 
 let mainWindow = null;
 let config = loadDesktopConfig();
+
+const LABELS = {
+  openCodex: '\u5728\u8fd9\u91cc\u6253\u5f00 Codex',
+  openClaude: '\u5728\u8fd9\u91cc\u6253\u5f00 Claude',
+  showState: '\u67e5\u770b\u5f53\u524d\u72b6\u6001',
+  startOnLogin: '\u5f00\u673a\u81ea\u52a8\u542f\u52a8',
+  enabled: '\u5df2\u5f00\u542f',
+  disabled: '\u5df2\u5173\u95ed',
+  openStateFolder: '\u6253\u5f00\u72b6\u6001\u6587\u4ef6\u5939',
+  quit: '\u9000\u51fa',
+  launchFailed: '\u542f\u52a8\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5 boba \u547d\u4ee4\u662f\u5426\u53ef\u7528\u3002',
+  loginFailed: '\u8bbe\u7f6e\u5f00\u673a\u542f\u52a8\u5931\u8d25\u3002'
+};
 
 function createWindow() {
   const position = config.windowPosition || {};
@@ -57,29 +70,29 @@ function buildContextMenu() {
 
   return Menu.buildFromTemplate([
     {
-      label: '在这里打开 Codex',
+      label: LABELS.openCodex,
       click: () => launchAgent('codex')
     },
     {
-      label: '在这里打开 Claude',
+      label: LABELS.openClaude,
       click: () => launchAgent('claude')
     },
     { type: 'separator' },
     {
-      label: '查看当前状态',
+      label: LABELS.showState,
       click: () => sendStateToRenderer(true)
     },
     {
-      label: `开机自动启动：${isLoginOpen ? '已开启' : '已关闭'}`,
+      label: `${LABELS.startOnLogin}\uff1a${isLoginOpen ? LABELS.enabled : LABELS.disabled}`,
       click: () => toggleLaunchAtLogin(!isLoginOpen)
     },
     { type: 'separator' },
     {
-      label: '打开状态文件夹',
+      label: LABELS.openStateFolder,
       click: () => shell.openPath(path.join(os.homedir(), '.boba-agent-coach'))
     },
     {
-      label: '退出',
+      label: LABELS.quit,
       click: () => app.quit()
     }
   ]);
@@ -99,7 +112,7 @@ function launchAgent(agent) {
   });
 
   child.on('error', () => {
-    sendBubble('启动失败，请检查 boba 命令是否可用。', 'concerned');
+    sendBubble(LABELS.launchFailed, 'concerned');
   });
 
   child.unref();
@@ -116,9 +129,9 @@ function toggleLaunchAtLogin(openAtLogin) {
       ...config,
       launchAtLogin: openAtLogin
     });
-    sendBubble(`开机自动启动：${openAtLogin ? '已开启' : '已关闭'}`, 'settled');
+    sendBubble(`${LABELS.startOnLogin}\uff1a${openAtLogin ? LABELS.enabled : LABELS.disabled}`, 'settled');
   } catch (_error) {
-    sendBubble('设置开机启动失败。', 'concerned');
+    sendBubble(LABELS.loginFailed, 'concerned');
   }
 }
 
@@ -159,6 +172,12 @@ app.whenReady().then(() => {
     if (!mainWindow || !position) return false;
     mainWindow.setPosition(Math.round(position.x), Math.round(position.y), false);
     return true;
+  });
+  ipcMain.handle('get-work-area', () => {
+    const display = mainWindow
+      ? screen.getDisplayMatching(mainWindow.getBounds())
+      : screen.getPrimaryDisplay();
+    return display.workArea;
   });
 
   app.on('activate', () => {
