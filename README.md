@@ -26,6 +26,12 @@ boba-desktop
 
 `boba-desktop` starts the floating desktop pet with Chinese status bubbles and a Chinese right-click menu.
 
+If the pet is hard to find, reset it near the lower-right area of the main screen:
+
+```powershell
+boba-desktop --reset-position
+```
+
 ## First-Version Reminders
 
 - Agent is waiting for the user.

@@ -12,6 +12,7 @@ const {
 
 let mainWindow = null;
 let config = loadDesktopConfig();
+const shouldResetPosition = process.argv.includes('--reset-position');
 
 const LABELS = {
   openCodex: '\u5728\u8fd9\u91cc\u6253\u5f00 Codex',
@@ -27,18 +28,24 @@ const LABELS = {
 };
 
 function createWindow() {
-  const position = config.windowPosition || {};
+  const position = shouldResetPosition ? getDefaultWindowPosition() : (config.windowPosition || getDefaultWindowPosition());
   mainWindow = new BrowserWindow({
-    width: 260,
-    height: 220,
+    width: 300,
+    height: 250,
+    minWidth: 300,
+    minHeight: 250,
+    maxWidth: 300,
+    maxHeight: 250,
     x: position.x,
     y: position.y,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
     resizable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -48,11 +55,24 @@ function createWindow() {
 
   mainWindow.setAlwaysOnTop(true, 'floating');
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.once('ready-to-show', () => {
+    if (!mainWindow) return;
+    mainWindow.setSize(300, 250, false);
+    mainWindow.showInactive();
+  });
 
   mainWindow.on('moved', saveWindowPosition);
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+function getDefaultWindowPosition() {
+  const workArea = screen.getPrimaryDisplay().workArea;
+  return {
+    x: Math.round(workArea.x + (workArea.width - 300) / 2),
+    y: Math.round(workArea.y + workArea.height - 330)
+  };
 }
 
 function saveWindowPosition() {

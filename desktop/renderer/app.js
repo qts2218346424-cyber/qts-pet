@@ -10,6 +10,7 @@ let dragState = null;
 let walkDirection = 1;
 let walkPausedUntil = 0;
 let lastWalkAt = 0;
+let canAutoWalk = false;
 
 const IDLE_TEXT = '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002';
 const WALK_SPEED_PX_PER_SECOND = 24;
@@ -56,13 +57,13 @@ async function walkFrame(now) {
   const deltaSeconds = Math.min((now - lastWalkAt) / 1000, 0.08);
   lastWalkAt = now;
 
-  if (!dragState && now >= walkPausedUntil) {
+  if (canAutoWalk && !dragState && now >= walkPausedUntil) {
     pet.classList.remove('paused');
     const [windowX, windowY] = await window.bobaDesktop.getWindowPosition();
     const workArea = await window.bobaDesktop.getWorkArea();
-    const petWidth = 260;
-    const minX = workArea.x;
-    const maxX = workArea.x + workArea.width - petWidth;
+    const petWidth = 300;
+    const minX = workArea.x + 60;
+    const maxX = workArea.x + workArea.width - petWidth - 160;
     let nextX = windowX + walkDirection * WALK_SPEED_PX_PER_SECOND * deltaSeconds;
 
     if (nextX <= minX) {
@@ -143,4 +144,7 @@ window.addEventListener('beforeunload', () => {
 
 refreshState(true);
 setInterval(() => refreshState(false), 2000);
-requestAnimationFrame(walkFrame);
+setTimeout(() => {
+  canAutoWalk = true;
+  requestAnimationFrame(walkFrame);
+}, 1800);
