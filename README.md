@@ -1,4 +1,8 @@
-# Boba Agent Coach
+# qts-pet
+
+My personal office pet project, starting with Boba Agent Coach.
+
+## Boba Agent Coach
 
 Boba Agent Coach is a lightweight command wrapper for Claude Code and Codex. It records local session state so a desktop pet can show calm work-rhythm reminders.
 
