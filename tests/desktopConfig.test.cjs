@@ -15,6 +15,11 @@ test('returns defaults when config is missing', () => {
   const config = loadDesktopConfig({ configPath: path.join(root, 'config.json') });
   assert.deepEqual(config.windowPosition, null);
   assert.equal(config.launchAtLogin, false);
+  assert.equal(config.settings.showFps, true);
+  assert.equal(config.settings.autoDance, true);
+  assert.equal(config.settings.allowMovement, true);
+  assert.equal(config.settings.showBubbles, true);
+  assert.equal(config.settings.lowPower, false);
 });
 
 test('returns defaults when config is malformed', () => {
@@ -24,6 +29,7 @@ test('returns defaults when config is malformed', () => {
   const config = loadDesktopConfig({ configPath: file });
   assert.deepEqual(config.windowPosition, null);
   assert.equal(config.launchAtLogin, false);
+  assert.equal(config.settings.showFps, true);
 });
 
 test('saves and loads config', () => {
@@ -31,9 +37,21 @@ test('saves and loads config', () => {
   const file = path.join(root, 'config.json');
   saveDesktopConfig({
     windowPosition: { x: 10, y: 20 },
-    launchAtLogin: true
+    launchAtLogin: true,
+    settings: {
+      showFps: false,
+      autoDance: false,
+      allowMovement: false,
+      showBubbles: false,
+      lowPower: true
+    }
   }, { configPath: file });
   const config = loadDesktopConfig({ configPath: file });
   assert.deepEqual(config.windowPosition, { x: 10, y: 20 });
   assert.equal(config.launchAtLogin, true);
+  assert.equal(config.settings.showFps, false);
+  assert.equal(config.settings.autoDance, false);
+  assert.equal(config.settings.allowMovement, false);
+  assert.equal(config.settings.showBubbles, false);
+  assert.equal(config.settings.lowPower, true);
 });

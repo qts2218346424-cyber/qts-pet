@@ -1,8 +1,12 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const os = require('node:os');
 const test = require('node:test');
-const { resolveAgentCommand } = require('../src/agentResolver.cjs');
+const {
+  lookupCommandOnPath,
+  resolveAgentCommand
+} = require('../src/agentResolver.cjs');
 
 test('resolves claude through injected lookup', () => {
   const result = resolveAgentCommand('claude', {
@@ -43,4 +47,20 @@ test('throws when supported agent is missing', () => {
     () => resolveAgentCommand('codex', { lookup: () => null }),
     /Could not find command/
   );
+});
+
+test('prefers Windows command shims that can be launched reliably', () => {
+  if (os.platform() !== 'win32') return;
+
+  const result = lookupCommandOnPath('claude', {
+    execFileSync() {
+      return [
+        'C:\\Users\\Example\\AppData\\Roaming\\npm\\claude',
+        'C:\\Users\\Example\\AppData\\Roaming\\npm\\claude.cmd',
+        'C:\\Users\\Example\\AppData\\Roaming\\npm\\claude.ps1'
+      ].join('\r\n');
+    }
+  });
+
+  assert.equal(result, 'C:\\Users\\Example\\AppData\\Roaming\\npm\\claude.cmd');
 });

@@ -7,9 +7,13 @@ const fpsBadge = document.getElementById('fps');
 const infoPanel = document.getElementById('info-panel');
 const infoTitle = document.getElementById('info-title');
 const infoMessage = document.getElementById('info-message');
+const commandPanel = document.getElementById('command-panel');
+const commandInput = document.getElementById('command-input');
+const settingsPanel = document.getElementById('settings-panel');
 
 let hideTimer = null;
 let infoHideTimer = null;
+let commandHideTimer = null;
 let lastMessage = '';
 let dragState = null;
 let walkDirection = 1;
@@ -23,6 +27,14 @@ let fpsLastAt = performance.now();
 let lookMode = 'dance';
 let currentMood = 'idle';
 let danceMode = true;
+let danceBoostUntil = 0;
+let settings = {
+  showFps: true,
+  autoDance: true,
+  allowMovement: true,
+  showBubbles: true,
+  lowPower: false
+};
 
 const IDLE_TEXT = '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002';
 const IDLE_CHATTER = [
@@ -61,7 +73,11 @@ function applyPetClasses(mood = 'idle') {
     danceMode ? 'dance-mode' : 'step-mode'
   ];
 
-  if (!walkingEnabled || performance.now() < walkPausedUntil) {
+  if (performance.now() < danceBoostUntil) {
+    classes.push('dance-boost');
+  }
+  const isDanceBoosting = performance.now() < danceBoostUntil;
+  if (!walkingEnabled || (!settings.autoDance && !isDanceBoosting) || (settings.lowPower && !isDanceBoosting) || performance.now() < walkPausedUntil) {
     classes.push('paused');
   }
   if (dragState) {
@@ -79,6 +95,7 @@ function getIdleMessage(force) {
 }
 
 function showBubble() {
+  if (!settings.showBubbles) return;
   pauseWalking(3500);
   bubble.classList.remove('hidden');
   clearTimeout(hideTimer);
@@ -96,6 +113,55 @@ function showInfoPanel(command) {
   infoHideTimer = setTimeout(() => {
     infoPanel.classList.add('hidden');
   }, 9000);
+}
+
+function showCommandPanel() {
+  pauseWalking(12000);
+  commandPanel.classList.remove('hidden');
+  clearTimeout(commandHideTimer);
+  commandInput.focus();
+  commandInput.select();
+}
+
+function hideCommandPanelSoon() {
+  clearTimeout(commandHideTimer);
+  commandHideTimer = setTimeout(() => {
+    commandPanel.classList.add('hidden');
+  }, 1200);
+}
+
+function showSettingsPanel(nextSettings) {
+  if (nextSettings) {
+    settings = { ...settings, ...nextSettings };
+  }
+  syncSettingsPanel();
+  applySettings();
+  pauseWalking(12000);
+  settingsPanel.classList.remove('hidden');
+}
+
+function syncSettingsPanel() {
+  for (const input of settingsPanel.querySelectorAll('input[type="checkbox"]')) {
+    input.checked = Boolean(settings[input.name]);
+  }
+}
+
+async function updateSetting(name, value) {
+  settings = {
+    ...settings,
+    [name]: value
+  };
+  settings = await window.bobaDesktop.saveSettings(settings);
+  syncSettingsPanel();
+  applySettings();
+}
+
+function applySettings() {
+  fpsBadge.classList.toggle('hidden', !settings.showFps);
+  if (!settings.showBubbles) {
+    bubble.classList.add('hidden');
+  }
+  applyPetClasses(currentMood);
 }
 
 function pauseWalking(durationMs = WALK_RESUME_DELAY_MS) {
@@ -117,8 +183,12 @@ async function walkTick() {
   danceMode = Math.random() > 0.28;
 
   if (walkingEnabled && canAutoWalk && !dragState && now >= walkPausedUntil) {
+    if (!settings.autoDance || settings.lowPower) {
+      applyPetClasses(currentMood);
+      return;
+    }
     pet.classList.remove('paused');
-    if (danceMode) {
+    if (danceMode || !settings.allowMovement) {
       lookMode = 'dance';
       applyPetClasses(currentMood);
       return;
@@ -189,6 +259,84 @@ function toggleWalking() {
   }
 }
 
+function forceDance() {
+  walkingEnabled = true;
+  danceMode = true;
+  lookMode = 'dance';
+  danceBoostUntil = performance.now() + 9000;
+  walkPausedUntil = 0;
+  applyPetClasses('settled');
+  setState({
+    status: 'notice',
+    message: '\u6536\u5230\uff0c\u6211\u8df3\u4e00\u6bb5\u3002',
+    mood: 'settled'
+  }, true);
+}
+
+function forcePause() {
+  if (walkingEnabled) {
+    toggleWalking();
+    return;
+  }
+  setState({
+    status: 'notice',
+    message: '\u6211\u5df2\u7ecf\u4e0d\u52a8\u5566\u3002',
+    mood: 'gentle_prompt'
+  }, true);
+}
+
+function forceResume() {
+  if (!walkingEnabled) {
+    toggleWalking();
+    return;
+  }
+  walkPausedUntil = 0;
+  setState({
+    status: 'notice',
+    message: '\u6536\u5230\uff0c\u7ee7\u7eed\u966a\u4f60\u3002',
+    mood: 'settled'
+  }, true);
+}
+
+async function runCommandText(text) {
+  const command = String(text || '').trim().toLowerCase();
+  if (!command) return;
+
+  if (command.includes('\u8df3') || command.includes('\u821e') || command.includes('\u6447') || command.includes('\u5f00\u5fc3')) {
+    forceDance();
+    return;
+  }
+
+  if (command.includes('\u6682\u505c') || command.includes('\u522b\u52a8') || command.includes('\u505c\u4e0b')) {
+    forcePause();
+    return;
+  }
+
+  if (command.includes('\u7ee7\u7eed') || command.includes('\u52a8\u8d77\u6765') || command.includes('\u5f00\u59cb')) {
+    forceResume();
+    return;
+  }
+
+  if (command.includes('\u770b\u65c1\u8fb9') || command.includes('\u522b\u770b\u6211')) {
+    lookMode = 'side';
+    walkDirection = Math.random() > 0.5 ? 1 : -1;
+    applyPetClasses(currentMood);
+    setState({
+      status: 'notice',
+      message: '\u597d\u7684\uff0c\u6211\u770b\u65c1\u8fb9\u3002',
+      mood: 'gentle_prompt'
+    }, true);
+    return;
+  }
+
+  const result = await window.bobaDesktop.runPetCommand(command);
+  setState({
+    status: 'notice',
+    message: result.message,
+    mood: result.handled ? 'settled' : 'gentle_prompt'
+  }, true);
+}
+
 function measureFps(now) {
   fpsFrames += 1;
 
@@ -214,6 +362,30 @@ window.bobaDesktop.onCommand((command) => {
   if (command.type === 'show-info-panel') {
     showInfoPanel(command);
   }
+  if (command.type === 'open-command-box') {
+    showCommandPanel();
+  }
+  if (command.type === 'open-settings-panel') {
+    showSettingsPanel(command.settings);
+  }
+});
+
+commandPanel.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  await runCommandText(commandInput.value);
+  commandInput.value = '';
+  hideCommandPanelSoon();
+});
+
+commandInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    commandPanel.classList.add('hidden');
+  }
+});
+
+settingsPanel.addEventListener('change', (event) => {
+  if (!event.target || event.target.type !== 'checkbox') return;
+  updateSetting(event.target.name, event.target.checked);
 });
 
 pet.addEventListener('dblclick', () => {
@@ -279,9 +451,14 @@ window.addEventListener('beforeunload', () => {
   window.bobaDesktop.savePosition();
 });
 
-refreshState(true);
-refreshWorkArea();
-requestAnimationFrame(measureFps);
+window.bobaDesktop.getConfig().then((config) => {
+  settings = { ...settings, ...(config.settings || {}) };
+  syncSettingsPanel();
+  applySettings();
+  refreshState(true);
+  refreshWorkArea();
+  requestAnimationFrame(measureFps);
+});
 setInterval(() => refreshState(false), 10000);
 setInterval(() => refreshState(true), 45000);
 setInterval(() => refreshWorkArea(), 30000);

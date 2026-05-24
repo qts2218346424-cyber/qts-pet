@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('bobaDesktop', {
   getWindowPosition: () => ipcRenderer.invoke('get-window-position'),
   setWindowPosition: (position) => ipcRenderer.invoke('set-window-position', position),
   getWorkArea: () => ipcRenderer.invoke('get-work-area'),
+  runPetCommand: (text) => ipcRenderer.invoke('run-pet-command', text),
+  getConfig: () => ipcRenderer.invoke('get-config'),
+  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   onState: (callback) => {
     ipcRenderer.on('desktop-state', (_event, state) => callback(state));
   },

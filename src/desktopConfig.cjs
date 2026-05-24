@@ -6,7 +6,14 @@ const os = require('node:os');
 
 const DEFAULT_CONFIG = {
   windowPosition: null,
-  launchAtLogin: false
+  launchAtLogin: false,
+  settings: {
+    showFps: true,
+    autoDance: true,
+    allowMovement: true,
+    showBubbles: true,
+    lowPower: false
+  }
 };
 
 function defaultConfigPath() {
@@ -38,7 +45,22 @@ function normalizeConfig(config) {
 
   return {
     windowPosition,
-    launchAtLogin: Boolean(config && config.launchAtLogin)
+    launchAtLogin: Boolean(config && config.launchAtLogin),
+    settings: normalizeSettings(config && config.settings)
+  };
+}
+
+function normalizeSettings(settings) {
+  if (!settings || typeof settings !== 'object') {
+    return { ...DEFAULT_CONFIG.settings };
+  }
+
+  return {
+    showFps: settings.showFps !== false,
+    autoDance: settings.autoDance !== false,
+    allowMovement: settings.allowMovement !== false,
+    showBubbles: settings.showBubbles !== false,
+    lowPower: Boolean(settings.lowPower)
   };
 }
 
@@ -53,5 +75,6 @@ module.exports = {
   defaultConfigPath,
   loadDesktopConfig,
   saveDesktopConfig,
-  normalizeConfig
+  normalizeConfig,
+  normalizeSettings
 };

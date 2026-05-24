@@ -15,8 +15,9 @@ let mainWindow = null;
 let config = loadDesktopConfig();
 const shouldResetPosition = process.argv.includes('--reset-position');
 let lastMenuAt = 0;
+const PROJECT_ROOT = path.resolve(__dirname, '..');
 const PET_WINDOW_WIDTH = 240;
-const PET_WINDOW_HEIGHT = 200;
+const PET_WINDOW_HEIGHT = 260;
 
 const LABELS = {
   openCodex: '\u5728\u8fd9\u91cc\u6253\u5f00 Codex',
@@ -24,6 +25,8 @@ const LABELS = {
   showState: '\u67e5\u770b\u5f53\u524d\u72b6\u6001',
   showCodexUsage: '\u67e5\u770b Codex \u4f59\u989d/\u7528\u91cf',
   showGpuStatus: '\u67e5\u770b\u663e\u5361\u72b6\u6001',
+  commandPet: '\u547d\u4ee4\u5ba0\u7269',
+  settings: '\u8bbe\u7f6e\u7ba1\u7406',
   toggleWalking: '\u6682\u505c/\u7ee7\u7eed\u884c\u8d70',
   resetPosition: '\u91cd\u7f6e\u4f4d\u7f6e',
   startOnLogin: '\u5f00\u673a\u81ea\u52a8\u542f\u52a8',
@@ -131,6 +134,14 @@ function buildContextMenu() {
       click: () => showGpuStatus()
     },
     {
+      label: LABELS.commandPet,
+      click: () => openCommandBox()
+    },
+    {
+      label: LABELS.settings,
+      click: () => openSettingsPanel()
+    },
+    {
       label: LABELS.toggleWalking,
       click: () => sendRendererCommand({ type: 'toggle-walking' })
     },
@@ -162,13 +173,14 @@ function showContextMenu() {
 }
 
 function launchAgent(agent) {
-  const command = `boba ${agent}`;
+  const launcher = path.join(PROJECT_ROOT, 'bin', 'boba.cjs');
+  const command = `node ${quotePowerShell(launcher)} ${agent}`;
   const child = spawn('powershell.exe', [
     '-NoExit',
     '-Command',
     command
   ], {
-    cwd: os.homedir(),
+    cwd: PROJECT_ROOT,
     detached: true,
     stdio: 'ignore',
     windowsHide: false
@@ -178,7 +190,12 @@ function launchAgent(agent) {
     sendBubble(LABELS.launchFailed, 'concerned');
   });
 
+  sendBubble(agent === 'claude' ? '\u6b63\u5728\u6253\u5f00 Claude\u3002' : '\u6b63\u5728\u6253\u5f00 Codex\u3002', 'gentle_prompt');
   child.unref();
+}
+
+function quotePowerShell(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
 }
 
 function toggleLaunchAtLogin(openAtLogin) {
@@ -214,6 +231,20 @@ function showCodexUsage() {
     message: summary.message,
     mood: summary.available ? 'gentle_prompt' : 'concerned'
   });
+}
+
+function openCommandBox() {
+  if (!mainWindow) return;
+  mainWindow.show();
+  mainWindow.focus();
+  sendRendererCommand({ type: 'open-command-box' });
+}
+
+function openSettingsPanel() {
+  if (!mainWindow) return;
+  mainWindow.show();
+  mainWindow.focus();
+  sendRendererCommand({ type: 'open-settings-panel', settings: config.settings });
 }
 
 function showGpuStatus() {
@@ -267,6 +298,43 @@ function sendBubble(message, mood) {
   });
 }
 
+function handlePetCommand(text) {
+  const command = String(text || '').trim().toLowerCase();
+  if (!command) {
+    return { handled: false, message: '\u4f60\u8fd8\u6ca1\u6709\u8f93\u5165\u547d\u4ee4\u3002' };
+  }
+
+  if (command.includes('claude')) {
+    launchAgent('claude');
+    return { handled: true, message: '\u6536\u5230\uff0c\u6211\u53bb\u6253\u5f00 Claude\u3002' };
+  }
+
+  if (command.includes('codex') && !command.includes('\u7528\u91cf') && !command.includes('\u4f59\u989d')) {
+    launchAgent('codex');
+    return { handled: true, message: '\u6536\u5230\uff0c\u6211\u53bb\u6253\u5f00 Codex\u3002' };
+  }
+
+  if (command.includes('\u7528\u91cf') || command.includes('\u4f59\u989d') || command.includes('\u8d26\u53f7')) {
+    showCodexUsage();
+    return { handled: true, message: '\u6536\u5230\uff0c\u6211\u628a Codex \u7528\u91cf\u653e\u5230\u5c0f\u9762\u677f\u91cc\u3002' };
+  }
+
+  if (command.includes('\u663e\u5361') || command.includes('gpu') || command.includes('fps') || command.includes('\u5e27\u7387')) {
+    showGpuStatus();
+    return { handled: true, message: '\u6536\u5230\uff0c\u5df2\u663e\u793a\u663e\u5361\u548c\u5e27\u7387\u72b6\u6001\u3002' };
+  }
+
+  if (command.includes('\u56de\u6765') || command.includes('\u91cd\u7f6e') || command.includes('\u5f52\u4f4d')) {
+    resetWindowPosition();
+    return { handled: true, message: '\u6536\u5230\uff0c\u6211\u56de\u5230\u9ed8\u8ba4\u4f4d\u7f6e\u3002' };
+  }
+
+  return {
+    handled: false,
+    message: '\u6211\u6682\u65f6\u53ea\u61c2\uff1a\u8df3\u821e\u3001\u6682\u505c\u3001\u7ee7\u7eed\u3001\u56de\u6765\u3001\u6253\u5f00 Claude\u3001Codex \u7528\u91cf\u3001\u663e\u5361\u72b6\u6001\u3002'
+  };
+}
+
 app.whenReady().then(() => {
   createWindow();
 
@@ -291,6 +359,15 @@ app.whenReady().then(() => {
       ? screen.getDisplayMatching(mainWindow.getBounds())
       : screen.getPrimaryDisplay();
     return display.workArea;
+  });
+  ipcMain.handle('run-pet-command', (_event, text) => handlePetCommand(text));
+  ipcMain.handle('get-config', () => config);
+  ipcMain.handle('save-settings', (_event, settings) => {
+    config = saveDesktopConfig({
+      ...config,
+      settings
+    });
+    return config.settings;
   });
 
   app.on('activate', () => {
