@@ -11,8 +11,8 @@ body {
 
 .pet {
   position: relative;
-  width: 260px;
-  height: 220px;
+  width: 300px;
+  height: 250px;
   cursor: grab;
   -webkit-app-region: no-drag;
 }
@@ -23,8 +23,8 @@ body {
 
 .dragon {
   position: absolute;
-  left: 62px;
-  bottom: 18px;
+  left: 82px;
+  bottom: 26px;
   width: 136px;
   height: 144px;
   transform-origin: 50% 86%;
