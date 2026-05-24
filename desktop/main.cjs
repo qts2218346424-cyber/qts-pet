@@ -186,7 +186,6 @@ function sendBubble(message, mood) {
 
 app.whenReady().then(() => {
   createWindow();
-  setInterval(() => sendStateToRenderer(false), 2000);
 
   ipcMain.handle('get-state', () => loadDesktopState());
   ipcMain.handle('show-menu', () => {

@@ -11,6 +11,8 @@ let walkDirection = 1;
 let walkPausedUntil = 0;
 let lastWalkAt = 0;
 let canAutoWalk = false;
+let cachedWorkArea = null;
+let currentWindowPosition = null;
 
 const IDLE_TEXT = '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002';
 const IDLE_CHATTER = [
@@ -20,6 +22,7 @@ const IDLE_CHATTER = [
   '\u8bb0\u5f97\u5076\u5c14\u4f11\u606f\u4e00\u4e0b\u3002'
 ];
 const WALK_SPEED_PX_PER_SECOND = 24;
+const WALK_TICK_MS = 240;
 const WALK_RESUME_DELAY_MS = 2000;
 let idleChatterIndex = 0;
 
@@ -64,18 +67,30 @@ async function refreshState(force = false) {
   setState(state, force);
 }
 
-async function walkFrame(now) {
+async function refreshWorkArea() {
+  cachedWorkArea = await window.bobaDesktop.getWorkArea();
+}
+
+async function walkTick() {
+  const now = performance.now();
   if (!lastWalkAt) {
     lastWalkAt = now;
   }
-
-  const deltaSeconds = Math.min((now - lastWalkAt) / 1000, 0.08);
+  const deltaSeconds = Math.min((now - lastWalkAt) / 1000, 0.35);
   lastWalkAt = now;
 
   if (canAutoWalk && !dragState && now >= walkPausedUntil) {
     pet.classList.remove('paused');
-    const [windowX, windowY] = await window.bobaDesktop.getWindowPosition();
-    const workArea = await window.bobaDesktop.getWorkArea();
+    if (!currentWindowPosition) {
+      const [windowX, windowY] = await window.bobaDesktop.getWindowPosition();
+      currentWindowPosition = { x: windowX, y: windowY };
+    }
+    if (!cachedWorkArea) {
+      await refreshWorkArea();
+    }
+    const windowX = currentWindowPosition.x;
+    const windowY = currentWindowPosition.y;
+    const workArea = cachedWorkArea;
     const petWidth = 300;
     const minX = workArea.x + 60;
     const maxX = workArea.x + workArea.width - petWidth - 160;
@@ -91,12 +106,11 @@ async function walkFrame(now) {
 
     pet.classList.toggle('facing-left', walkDirection < 0);
     pet.classList.toggle('facing-right', walkDirection > 0);
+    currentWindowPosition = { x: nextX, y: windowY };
     await window.bobaDesktop.setWindowPosition({ x: nextX, y: windowY });
   } else {
     pet.classList.add('paused');
   }
-
-  requestAnimationFrame(walkFrame);
 }
 
 window.bobaDesktop.onState((state) => {
@@ -111,6 +125,7 @@ pet.addEventListener('pointerdown', async (event) => {
   if (event.button !== 0) return;
   pauseWalking();
   const [windowX, windowY] = await window.bobaDesktop.getWindowPosition();
+  currentWindowPosition = { x: windowX, y: windowY };
   dragState = {
     pointerId: event.pointerId,
     startScreenX: event.screenX,
@@ -130,6 +145,10 @@ pet.addEventListener('pointermove', (event) => {
     x: dragState.windowX + dx,
     y: dragState.windowY + dy
   });
+  currentWindowPosition = {
+    x: dragState.windowX + dx,
+    y: dragState.windowY + dy
+  };
 });
 
 pet.addEventListener('pointerup', (event) => {
@@ -153,14 +172,22 @@ pet.addEventListener('contextmenu', (event) => {
   window.bobaDesktop.showMenu();
 });
 
+pet.addEventListener('mouseenter', () => {
+  pauseWalking(4500);
+});
+
 window.addEventListener('beforeunload', () => {
   window.bobaDesktop.savePosition();
 });
 
 refreshState(true);
-setInterval(() => refreshState(false), 2000);
-setInterval(() => refreshState(true), 30000);
+refreshWorkArea();
+setInterval(() => refreshState(false), 10000);
+setInterval(() => refreshState(true), 45000);
+setInterval(() => refreshWorkArea(), 30000);
 setTimeout(() => {
   canAutoWalk = true;
-  requestAnimationFrame(walkFrame);
+  setInterval(() => {
+    walkTick();
+  }, WALK_TICK_MS);
 }, 1800);
