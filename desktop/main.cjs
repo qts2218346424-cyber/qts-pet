@@ -15,6 +15,7 @@ let mainWindow = null;
 let config = loadDesktopConfig();
 const shouldResetPosition = process.argv.includes('--reset-position');
 let lastMenuAt = 0;
+let isMousePassthrough = false;
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const PET_WINDOW_WIDTH = 240;
 const PET_WINDOW_HEIGHT = 260;
@@ -82,6 +83,7 @@ function createWindow() {
     if (!mainWindow) return;
     mainWindow.setSize(PET_WINDOW_WIDTH, PET_WINDOW_HEIGHT, false);
     mainWindow.showInactive();
+    setMousePassthrough(true);
   });
 
   mainWindow.on('moved', saveWindowPosition);
@@ -235,6 +237,7 @@ function showCodexUsage() {
 
 function openCommandBox() {
   if (!mainWindow) return;
+  setMousePassthrough(false);
   mainWindow.show();
   mainWindow.focus();
   sendRendererCommand({ type: 'open-command-box' });
@@ -242,6 +245,7 @@ function openCommandBox() {
 
 function openSettingsPanel() {
   if (!mainWindow) return;
+  setMousePassthrough(false);
   mainWindow.show();
   mainWindow.focus();
   sendRendererCommand({ type: 'open-settings-panel', settings: config.settings });
@@ -296,6 +300,12 @@ function sendBubble(message, mood) {
     mood,
     force: true
   });
+}
+
+function setMousePassthrough(shouldPassThrough) {
+  if (!mainWindow || isMousePassthrough === shouldPassThrough) return;
+  isMousePassthrough = shouldPassThrough;
+  mainWindow.setIgnoreMouseEvents(shouldPassThrough, { forward: true });
 }
 
 function handlePetCommand(text) {
@@ -368,6 +378,10 @@ app.whenReady().then(() => {
       settings
     });
     return config.settings;
+  });
+  ipcMain.handle('set-mouse-passthrough', (_event, shouldPassThrough) => {
+    setMousePassthrough(Boolean(shouldPassThrough));
+    return true;
   });
 
   app.on('activate', () => {

@@ -28,6 +28,7 @@ let lookMode = 'dance';
 let currentMood = 'idle';
 let danceMode = true;
 let danceBoostUntil = 0;
+let isMousePassthrough = null;
 let settings = {
   showFps: true,
   autoDance: true,
@@ -162,6 +163,36 @@ function applySettings() {
     bubble.classList.add('hidden');
   }
   applyPetClasses(currentMood);
+}
+
+function isElementVisible(element) {
+  return element && !element.classList.contains('hidden');
+}
+
+function isInteractiveTarget(target) {
+  if (!target) return false;
+  return Boolean(
+    target.closest('.dragon') ||
+    (isElementVisible(bubble) && target.closest('.bubble')) ||
+    (isElementVisible(commandPanel) && target.closest('.command-panel')) ||
+    (isElementVisible(settingsPanel) && target.closest('.settings-panel'))
+  );
+}
+
+function updateMousePassthrough(event) {
+  if (dragState) {
+    setMousePassthrough(false);
+    return;
+  }
+
+  const target = document.elementFromPoint(event.clientX, event.clientY);
+  setMousePassthrough(!isInteractiveTarget(target));
+}
+
+function setMousePassthrough(shouldPassThrough) {
+  if (isMousePassthrough === shouldPassThrough) return;
+  isMousePassthrough = shouldPassThrough;
+  window.bobaDesktop.setMousePassthrough(shouldPassThrough);
 }
 
 function pauseWalking(durationMs = WALK_RESUME_DELAY_MS) {
@@ -394,6 +425,7 @@ pet.addEventListener('dblclick', () => {
 
 pet.addEventListener('pointerdown', async (event) => {
   if (event.button !== 0) return;
+  if (!event.target.closest('.dragon')) return;
   pauseWalking();
   const [windowX, windowY] = await window.bobaDesktop.getWindowPosition();
   currentWindowPosition = { x: windowX, y: windowY };
@@ -428,6 +460,7 @@ pet.addEventListener('pointerup', (event) => {
   pet.classList.remove('dragging');
   window.bobaDesktop.savePosition();
   dragState = null;
+  updateMousePassthrough(event);
   pauseWalking(WALK_RESUME_DELAY_MS);
 });
 
@@ -441,6 +474,12 @@ pet.addEventListener('contextmenu', (event) => {
   event.preventDefault();
   pauseWalking(3000);
   window.bobaDesktop.showMenu();
+});
+
+document.addEventListener('mousemove', updateMousePassthrough);
+
+document.addEventListener('mouseleave', () => {
+  setMousePassthrough(true);
 });
 
 pet.addEventListener('mouseenter', () => {

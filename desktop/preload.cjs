@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('bobaDesktop', {
   runPetCommand: (text) => ipcRenderer.invoke('run-pet-command', text),
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  setMousePassthrough: (shouldPassThrough) => ipcRenderer.invoke('set-mouse-passthrough', shouldPassThrough),
   onState: (callback) => {
     ipcRenderer.on('desktop-state', (_event, state) => callback(state));
   },
