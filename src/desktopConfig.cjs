@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { DEFAULT_MODEL_SETTINGS, normalizeModelSettings } = require('./modelClient.cjs');
 
 const DEFAULT_CONFIG = {
   windowPosition: null,
@@ -12,7 +13,8 @@ const DEFAULT_CONFIG = {
     autoDance: true,
     allowMovement: true,
     showBubbles: true,
-    lowPower: false
+    lowPower: false,
+    ...DEFAULT_MODEL_SETTINGS
   }
 };
 
@@ -60,7 +62,8 @@ function normalizeSettings(settings) {
     autoDance: settings.autoDance !== false,
     allowMovement: settings.allowMovement !== false,
     showBubbles: settings.showBubbles !== false,
-    lowPower: Boolean(settings.lowPower)
+    lowPower: Boolean(settings.lowPower),
+    ...normalizeModelSettings(settings)
   };
 }
 

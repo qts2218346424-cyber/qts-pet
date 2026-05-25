@@ -34,7 +34,12 @@ let settings = {
   autoDance: true,
   allowMovement: true,
   showBubbles: true,
-  lowPower: false
+  lowPower: false,
+  modelEnabled: false,
+  modelProtocol: 'openai-compatible',
+  modelBaseUrl: 'https://api.deepseek.com',
+  modelName: 'deepseek-v4-flash',
+  modelApiKey: ''
 };
 
 const IDLE_TEXT = '\u0042\u006f\u0062\u0061 \u6b63\u5728\u5f85\u547d\u3002';
@@ -142,8 +147,12 @@ function showSettingsPanel(nextSettings) {
 }
 
 function syncSettingsPanel() {
-  for (const input of settingsPanel.querySelectorAll('input[type="checkbox"]')) {
-    input.checked = Boolean(settings[input.name]);
+  for (const field of settingsPanel.querySelectorAll('input, select')) {
+    if (field.type === 'checkbox') {
+      field.checked = Boolean(settings[field.name]);
+    } else {
+      field.value = settings[field.name] || '';
+    }
   }
 }
 
@@ -155,6 +164,10 @@ async function updateSetting(name, value) {
   settings = await window.bobaDesktop.saveSettings(settings);
   syncSettingsPanel();
   applySettings();
+}
+
+function getSettingValue(field) {
+  return field.type === 'checkbox' ? field.checked : field.value;
 }
 
 function applySettings() {
@@ -329,6 +342,43 @@ function forceResume() {
   }, true);
 }
 
+async function applyModelAction(action) {
+  if (action === 'dance') {
+    walkingEnabled = true;
+    danceMode = true;
+    lookMode = 'dance';
+    danceBoostUntil = performance.now() + 9000;
+    walkPausedUntil = 0;
+    applyPetClasses('settled');
+    return;
+  }
+
+  if (action === 'pause') {
+    walkingEnabled = false;
+    pauseWalking(60 * 60 * 1000);
+    applyPetClasses('gentle_prompt');
+    return;
+  }
+
+  if (action === 'resume') {
+    walkingEnabled = true;
+    walkPausedUntil = 0;
+    applyPetClasses('settled');
+    return;
+  }
+
+  if (action === 'look_side') {
+    lookMode = 'side';
+    walkDirection = Math.random() > 0.5 ? 1 : -1;
+    applyPetClasses(currentMood);
+    return;
+  }
+
+  if (action === 'reset_position') {
+    await window.bobaDesktop.runPetCommand('\u56de\u6765');
+  }
+}
+
 async function runCommandText(text) {
   const command = String(text || '').trim().toLowerCase();
   if (!command) return;
@@ -361,10 +411,29 @@ async function runCommandText(text) {
   }
 
   const result = await window.bobaDesktop.runPetCommand(command);
+  if (result.handled) {
+    setState({
+      status: 'notice',
+      message: result.message,
+      mood: 'settled'
+    }, true);
+    return;
+  }
+
   setState({
     status: 'notice',
-    message: result.message,
-    mood: result.handled ? 'settled' : 'gentle_prompt'
+    message: '\u6211\u60f3\u4e00\u4e0b\u3002',
+    mood: 'working'
+  }, true);
+
+  const modelResult = await window.bobaDesktop.askPetModel(command);
+  if (modelResult.ok) {
+    await applyModelAction(modelResult.action);
+  }
+  setState({
+    status: 'notice',
+    message: modelResult.message,
+    mood: modelResult.ok ? 'settled' : 'gentle_prompt'
   }, true);
 }
 
@@ -415,8 +484,8 @@ commandInput.addEventListener('keydown', (event) => {
 });
 
 settingsPanel.addEventListener('change', (event) => {
-  if (!event.target || event.target.type !== 'checkbox') return;
-  updateSetting(event.target.name, event.target.checked);
+  if (!event.target || !event.target.name) return;
+  updateSetting(event.target.name, getSettingValue(event.target));
 });
 
 pet.addEventListener('dblclick', () => {

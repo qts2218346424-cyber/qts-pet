@@ -10,6 +10,7 @@ const {
   saveDesktopConfig
 } = require('../src/desktopConfig.cjs');
 const { getCodexUsageSummary } = require('../src/codexUsage.cjs');
+const { askPetModel } = require('../src/modelClient.cjs');
 
 let mainWindow = null;
 let config = loadDesktopConfig();
@@ -175,8 +176,13 @@ function showContextMenu() {
 }
 
 function launchAgent(agent) {
+  if (agent === 'codex') {
+    launchCodexApp();
+    return;
+  }
+
   const launcher = path.join(PROJECT_ROOT, 'bin', 'boba.cjs');
-  const command = `node ${quotePowerShell(launcher)} ${agent}`;
+  const command = `${quotePowerShell(process.execPath)} ${quotePowerShell(launcher)} ${agent}`;
   const child = spawn('powershell.exe', [
     '-NoExit',
     '-Command',
@@ -193,6 +199,23 @@ function launchAgent(agent) {
   });
 
   sendBubble(agent === 'claude' ? '\u6b63\u5728\u6253\u5f00 Claude\u3002' : '\u6b63\u5728\u6253\u5f00 Codex\u3002', 'gentle_prompt');
+  child.unref();
+}
+
+function launchCodexApp() {
+  const child = spawn('explorer.exe', [
+    'shell:AppsFolder\\OpenAI.Codex_2p2nqsd0c76g0!App'
+  ], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: false
+  });
+
+  child.on('error', () => {
+    sendBubble(LABELS.launchFailed, 'concerned');
+  });
+
+  sendBubble('\u6b63\u5728\u6253\u5f00 Codex\u3002', 'gentle_prompt');
   child.unref();
 }
 
@@ -371,6 +394,7 @@ app.whenReady().then(() => {
     return display.workArea;
   });
   ipcMain.handle('run-pet-command', (_event, text) => handlePetCommand(text));
+  ipcMain.handle('ask-pet-model', async (_event, text) => askPetModel(text, { settings: config.settings }));
   ipcMain.handle('get-config', () => config);
   ipcMain.handle('save-settings', (_event, settings) => {
     config = saveDesktopConfig({

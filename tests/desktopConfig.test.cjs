@@ -20,6 +20,11 @@ test('returns defaults when config is missing', () => {
   assert.equal(config.settings.allowMovement, true);
   assert.equal(config.settings.showBubbles, true);
   assert.equal(config.settings.lowPower, false);
+  assert.equal(config.settings.modelEnabled, false);
+  assert.equal(config.settings.modelProtocol, 'openai-compatible');
+  assert.equal(config.settings.modelBaseUrl, 'https://api.deepseek.com');
+  assert.equal(config.settings.modelName, 'deepseek-v4-flash');
+  assert.equal(config.settings.modelApiKey, '');
 });
 
 test('returns defaults when config is malformed', () => {
@@ -43,7 +48,12 @@ test('saves and loads config', () => {
       autoDance: false,
       allowMovement: false,
       showBubbles: false,
-      lowPower: true
+      lowPower: true,
+      modelEnabled: true,
+      modelProtocol: 'anthropic-compatible',
+      modelBaseUrl: 'https://api.deepseek.com/anthropic',
+      modelName: 'deepseek-v4-pro',
+      modelApiKey: 'secret'
     }
   }, { configPath: file });
   const config = loadDesktopConfig({ configPath: file });
@@ -54,4 +64,9 @@ test('saves and loads config', () => {
   assert.equal(config.settings.allowMovement, false);
   assert.equal(config.settings.showBubbles, false);
   assert.equal(config.settings.lowPower, true);
+  assert.equal(config.settings.modelEnabled, true);
+  assert.equal(config.settings.modelProtocol, 'anthropic-compatible');
+  assert.equal(config.settings.modelBaseUrl, 'https://api.deepseek.com/anthropic');
+  assert.equal(config.settings.modelName, 'deepseek-v4-pro');
+  assert.equal(config.settings.modelApiKey, 'secret');
 });

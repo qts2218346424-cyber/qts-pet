@@ -24,6 +24,26 @@
         <label><input type="checkbox" name="allowMovement"> &#36731;&#24494;&#31227;&#21160;</label>
         <label><input type="checkbox" name="showBubbles"> &#26174;&#31034;&#23545;&#35805;&#27668;&#27873;</label>
         <label><input type="checkbox" name="lowPower"> &#20302;&#21344;&#29992;&#27169;&#24335;</label>
+        <label><input type="checkbox" name="modelEnabled"> &#21551;&#29992;&#27169;&#22411;&#33021;&#21147;</label>
+        <label class="settings-field">
+          <span>&#21327;&#35758;</span>
+          <select name="modelProtocol">
+            <option value="openai-compatible">OpenAI-compatible</option>
+            <option value="anthropic-compatible">Anthropic-compatible</option>
+          </select>
+        </label>
+        <label class="settings-field">
+          <span>Base URL</span>
+          <input type="text" name="modelBaseUrl" autocomplete="off">
+        </label>
+        <label class="settings-field">
+          <span>&#27169;&#22411;</span>
+          <input type="text" name="modelName" autocomplete="off">
+        </label>
+        <label class="settings-field">
+          <span>API Key</span>
+          <input type="password" name="modelApiKey" autocomplete="off">
+        </label>
       </form>
       <section id="bubble" class="bubble hidden">
         <p id="message">Boba &#27491;&#22312;&#24453;&#21629;&#12290;</p>
