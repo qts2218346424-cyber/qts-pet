@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
   askPetModel,
+  buildAnthropicMessagesUrl,
   extractAnthropicCompatibleText,
   extractOpenAICompatibleText,
   normalizeBaseUrl,
@@ -108,7 +109,7 @@ test('calls Anthropic-compatible messages endpoint', async () => {
       modelApiKey: 'test-key'
     },
     fetchImpl: async (url, options) => {
-      assert.equal(url, 'https://api.deepseek.com/anthropic/messages');
+      assert.equal(url, 'https://api.deepseek.com/anthropic/v1/messages');
       assert.equal(options.method, 'POST');
       assert.equal(options.headers['x-api-key'], 'test-key');
       const body = JSON.parse(options.body);
@@ -129,6 +130,42 @@ test('calls Anthropic-compatible messages endpoint', async () => {
     ok: true,
     message: 'dancing',
     action: 'dance'
+  });
+});
+
+test('does not duplicate /v1 for Anthropic-compatible base urls', () => {
+  assert.equal(
+    buildAnthropicMessagesUrl('https://www.packyapi.com/v1/'),
+    'https://www.packyapi.com/v1/messages'
+  );
+  assert.equal(
+    buildAnthropicMessagesUrl('https://www.packyapi.com'),
+    'https://www.packyapi.com/v1/messages'
+  );
+});
+
+test('reports non-json model responses clearly', async () => {
+  const result = await askPetModel('hello', {
+    settings: {
+      modelEnabled: true,
+      modelProtocol: 'anthropic-compatible',
+      modelBaseUrl: 'https://www.packyapi.com',
+      modelName: 'claude-sonnet-4-6',
+      modelApiKey: 'test-key'
+    },
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token <');
+      }
+    })
+  });
+
+  assert.deepEqual(result, {
+    ok: false,
+    message: '\u6a21\u578b\u8fd4\u56de\u7684\u4e0d\u662f JSON\uff0c\u8bf7\u68c0\u67e5\u534f\u8bae\u548c Base URL\u3002',
+    action: 'none'
   });
 });
 

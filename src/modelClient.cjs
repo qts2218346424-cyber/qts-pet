@@ -67,9 +67,18 @@ async function askPetModel(prompt, options = {}) {
     return { ok: false, message: MESSAGES.noFetch, action: 'none' };
   }
 
-  const raw = settings.modelProtocol === 'anthropic-compatible'
-    ? await requestAnthropicCompatible(text, settings, fetchImpl, options)
-    : await requestOpenAICompatible(text, settings, fetchImpl, options);
+  let raw;
+  try {
+    raw = settings.modelProtocol === 'anthropic-compatible'
+      ? await requestAnthropicCompatible(text, settings, fetchImpl, options)
+      : await requestOpenAICompatible(text, settings, fetchImpl, options);
+  } catch (error) {
+    return {
+      ok: false,
+      message: `\u6a21\u578b\u8bf7\u6c42\u5f02\u5e38\uff1a${cleanString(error && error.message) || '\u672a\u77e5\u9519\u8bef'}`,
+      action: 'none'
+    };
+  }
 
   if (!raw.ok) return raw;
 
@@ -103,16 +112,18 @@ async function requestOpenAICompatible(text, settings, fetchImpl, options) {
     return { ok: false, message: `\u6a21\u578b\u8fde\u63a5\u5931\u8d25\uff1a${response.status}`, action: 'none' };
   }
 
-  const data = await response.json();
+  const data = await parseJsonResponse(response);
+  if (!data.ok) return data;
+
   return {
     ok: true,
-    message: extractOpenAICompatibleText(data),
+    message: extractOpenAICompatibleText(data.value),
     action: 'none'
   };
 }
 
 async function requestAnthropicCompatible(text, settings, fetchImpl, options) {
-  const response = await fetchImpl(`${normalizeBaseUrl(settings.modelBaseUrl)}/messages`, {
+  const response = await fetchImpl(buildAnthropicMessagesUrl(settings.modelBaseUrl), {
     method: 'POST',
     headers: {
       'x-api-key': settings.modelApiKey,
@@ -134,10 +145,12 @@ async function requestAnthropicCompatible(text, settings, fetchImpl, options) {
     return { ok: false, message: `\u6a21\u578b\u8fde\u63a5\u5931\u8d25\uff1a${response.status}`, action: 'none' };
   }
 
-  const data = await response.json();
+  const data = await parseJsonResponse(response);
+  if (!data.ok) return data;
+
   return {
     ok: true,
-    message: extractAnthropicCompatibleText(data),
+    message: extractAnthropicCompatibleText(data.value),
     action: 'none'
   };
 }
@@ -181,6 +194,23 @@ function normalizeBaseUrl(value) {
   return (cleanString(value) || DEFAULT_MODEL_SETTINGS.modelBaseUrl).replace(/\/+$/u, '');
 }
 
+function buildAnthropicMessagesUrl(value) {
+  const baseUrl = normalizeBaseUrl(value);
+  return baseUrl.endsWith('/v1') ? `${baseUrl}/messages` : `${baseUrl}/v1/messages`;
+}
+
+async function parseJsonResponse(response) {
+  try {
+    return { ok: true, value: await response.json() };
+  } catch (_error) {
+    return {
+      ok: false,
+      message: '\u6a21\u578b\u8fd4\u56de\u7684\u4e0d\u662f JSON\uff0c\u8bf7\u68c0\u67e5\u534f\u8bae\u548c Base URL\u3002',
+      action: 'none'
+    };
+  }
+}
+
 function stripJsonFence(value) {
   return cleanString(value)
     .replace(/^```(?:json)?\s*/iu, '')
@@ -198,6 +228,7 @@ module.exports = {
   askPetModel,
   extractAnthropicCompatibleText,
   extractOpenAICompatibleText,
+  buildAnthropicMessagesUrl,
   normalizeBaseUrl,
   normalizeModelSettings,
   parseModelCommand
