@@ -14,6 +14,7 @@ const settingsPanel = document.getElementById('settings-panel');
 let hideTimer = null;
 let infoHideTimer = null;
 let commandHideTimer = null;
+let bubbleHideDuration = 10000;
 let lastMessage = '';
 let dragState = null;
 let walkDirection = 1;
@@ -64,7 +65,7 @@ function setState(state, force = false) {
   message.textContent = nextMessage;
 
   if (force || nextMessage !== lastMessage) {
-    showBubble();
+    showBubble({ isIdle, mood });
   }
 
   lastMessage = nextMessage;
@@ -100,14 +101,32 @@ function getIdleMessage(force) {
   return IDLE_CHATTER[idleChatterIndex];
 }
 
-function showBubble() {
+function getBubbleDuration({ isIdle, mood } = {}) {
+  if (mood === 'concerned') return 18000;
+  return isIdle ? 10000 : 16000;
+}
+
+function scheduleBubbleHide(duration = bubbleHideDuration) {
+  bubbleHideDuration = duration;
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => {
+    closeBubble();
+  }, duration);
+}
+
+function showBubble(options = {}) {
   if (!settings.showBubbles) return;
   pauseWalking(3500);
   bubble.classList.remove('hidden');
+  scheduleBubbleHide(getBubbleDuration(options));
+}
+
+function closeBubble() {
   clearTimeout(hideTimer);
-  hideTimer = setTimeout(() => {
-    bubble.classList.add('hidden');
-  }, 5000);
+  bubble.classList.add('hidden');
+  if (!hasOpenPanel()) {
+    setMousePassthrough(true);
+  }
 }
 
 function showInfoPanel(command) {
@@ -176,7 +195,7 @@ function getSettingValue(field) {
 function applySettings() {
   fpsBadge.classList.toggle('hidden', !settings.showFps);
   if (!settings.showBubbles) {
-    bubble.classList.add('hidden');
+    closeBubble();
   }
   applyPetClasses(currentMood);
 }
@@ -217,6 +236,10 @@ function closeTopPanel() {
   }
   if (isElementVisible(infoPanel)) {
     closePanel(infoPanel);
+    return true;
+  }
+  if (isElementVisible(bubble)) {
+    closeBubble();
     return true;
   }
   return false;
@@ -537,6 +560,7 @@ document.addEventListener('click', (event) => {
   if (target === 'info') closePanel(infoPanel);
   if (target === 'command') closePanel(commandPanel);
   if (target === 'settings') closePanel(settingsPanel);
+  if (target === 'bubble') closeBubble();
 });
 
 document.addEventListener('keydown', (event) => {
@@ -611,6 +635,15 @@ document.addEventListener('mouseleave', () => {
 
 pet.addEventListener('mouseenter', () => {
   pauseWalking(4500);
+});
+
+bubble.addEventListener('mouseenter', () => {
+  clearTimeout(hideTimer);
+});
+
+bubble.addEventListener('mouseleave', () => {
+  if (!isElementVisible(bubble)) return;
+  scheduleBubbleHide(Math.min(bubbleHideDuration, 6000));
 });
 
 window.addEventListener('beforeunload', () => {
