@@ -390,13 +390,13 @@ body {
   top: 35px;
   z-index: 5;
   width: 116px;
-  padding: 7px 8px;
+  padding: 7px 26px 7px 8px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(82, 88, 100, 0.18);
   box-shadow: 0 8px 22px rgba(35, 30, 20, 0.16);
   color: #2d2719;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .info-panel strong {
@@ -421,7 +421,7 @@ body {
   z-index: 6;
   display: flex;
   gap: 6px;
-  padding: 7px;
+  padding: 7px 31px 7px 7px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(125, 93, 33, 0.18);
@@ -466,13 +466,40 @@ body {
   gap: 6px;
   max-height: 150px;
   overflow: auto;
-  padding: 8px;
+  padding: 8px 31px 8px 8px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(125, 93, 33, 0.18);
   box-shadow: 0 8px 22px rgba(35, 30, 20, 0.15);
   color: #302718;
   font: 12px/1.2 "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+.panel-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 1px solid rgba(84, 66, 34, 0.16);
+  border-radius: 6px;
+  color: #59462a;
+  background: rgba(255, 250, 240, 0.88);
+  font: 16px/1 "Segoe UI", "Microsoft YaHei", sans-serif;
+  cursor: pointer;
+}
+
+.panel-close:hover {
+  background: rgba(255, 239, 214, 0.98);
+  border-color: rgba(84, 66, 34, 0.28);
+}
+
+.panel-close:focus-visible {
+  outline: 2px solid rgba(101, 153, 70, 0.38);
+  outline-offset: 1px;
 }
 
 .settings-panel strong {

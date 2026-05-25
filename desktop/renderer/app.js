@@ -115,15 +115,17 @@ function showInfoPanel(command) {
   infoTitle.textContent = command.title || '\u72b6\u6001';
   infoMessage.textContent = command.message || '';
   infoPanel.className = `info-panel mood-${command.mood || 'idle'}`;
+  setMousePassthrough(false);
   clearTimeout(infoHideTimer);
   infoHideTimer = setTimeout(() => {
-    infoPanel.classList.add('hidden');
+    closePanel(infoPanel);
   }, 9000);
 }
 
 function showCommandPanel() {
   pauseWalking(12000);
   commandPanel.classList.remove('hidden');
+  setMousePassthrough(false);
   clearTimeout(commandHideTimer);
   commandInput.focus();
   commandInput.select();
@@ -132,7 +134,7 @@ function showCommandPanel() {
 function hideCommandPanelSoon() {
   clearTimeout(commandHideTimer);
   commandHideTimer = setTimeout(() => {
-    commandPanel.classList.add('hidden');
+    closePanel(commandPanel);
   }, 1200);
 }
 
@@ -144,6 +146,7 @@ function showSettingsPanel(nextSettings) {
   applySettings();
   pauseWalking(12000);
   settingsPanel.classList.remove('hidden');
+  setMousePassthrough(false);
 }
 
 function syncSettingsPanel() {
@@ -180,6 +183,43 @@ function applySettings() {
 
 function isElementVisible(element) {
   return element && !element.classList.contains('hidden');
+}
+
+function hasOpenPanel() {
+  return isElementVisible(infoPanel) ||
+    isElementVisible(commandPanel) ||
+    isElementVisible(settingsPanel);
+}
+
+function closePanel(panel) {
+  if (!panel) return;
+  if (panel === infoPanel) {
+    clearTimeout(infoHideTimer);
+  }
+  if (panel === commandPanel) {
+    clearTimeout(commandHideTimer);
+  }
+
+  panel.classList.add('hidden');
+  if (!hasOpenPanel()) {
+    setMousePassthrough(true);
+  }
+}
+
+function closeTopPanel() {
+  if (isElementVisible(settingsPanel)) {
+    closePanel(settingsPanel);
+    return true;
+  }
+  if (isElementVisible(commandPanel)) {
+    closePanel(commandPanel);
+    return true;
+  }
+  if (isElementVisible(infoPanel)) {
+    closePanel(infoPanel);
+    return true;
+  }
+  return false;
 }
 
 function isInteractiveTarget(target) {
@@ -479,13 +519,31 @@ commandPanel.addEventListener('submit', async (event) => {
 
 commandInput.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
-    commandPanel.classList.add('hidden');
+    event.preventDefault();
+    closeTopPanel();
   }
 });
 
 settingsPanel.addEventListener('change', (event) => {
   if (!event.target || !event.target.name) return;
   updateSetting(event.target.name, getSettingValue(event.target));
+});
+
+document.addEventListener('click', (event) => {
+  const closeButton = event.target && event.target.closest('[data-close-panel]');
+  if (!closeButton) return;
+  event.preventDefault();
+  const target = closeButton.getAttribute('data-close-panel');
+  if (target === 'info') closePanel(infoPanel);
+  if (target === 'command') closePanel(commandPanel);
+  if (target === 'settings') closePanel(settingsPanel);
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (closeTopPanel()) {
+    event.preventDefault();
+  }
 });
 
 pet.addEventListener('dblclick', () => {
