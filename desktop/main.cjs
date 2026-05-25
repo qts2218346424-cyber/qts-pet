@@ -180,6 +180,10 @@ function launchAgent(agent) {
     launchCodexApp();
     return;
   }
+  if (agent === 'claude') {
+    launchClaudeApp();
+    return;
+  }
 
   const launcher = path.join(PROJECT_ROOT, 'bin', 'boba.cjs');
   const command = `${quotePowerShell(process.execPath)} ${quotePowerShell(launcher)} ${agent}`;
@@ -199,6 +203,23 @@ function launchAgent(agent) {
   });
 
   sendBubble(agent === 'claude' ? '\u6b63\u5728\u6253\u5f00 Claude\u3002' : '\u6b63\u5728\u6253\u5f00 Codex\u3002', 'gentle_prompt');
+  child.unref();
+}
+
+function launchClaudeApp() {
+  const child = spawn('explorer.exe', [
+    'shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude'
+  ], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: false
+  });
+
+  child.on('error', () => {
+    sendBubble(LABELS.launchFailed, 'concerned');
+  });
+
+  sendBubble('\u6b63\u5728\u6253\u5f00 Claude \u8f6f\u4ef6\u3002', 'gentle_prompt');
   child.unref();
 }
 
